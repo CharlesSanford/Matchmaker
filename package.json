@@ -12,12 +12,14 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "firebase": "^4.6.2",
+    "firebase-functions": "^0.7.3",
     "fs": "0.0.1-security",
     "needle": "^2.0.1",
     "net": "^1.0.2",
     "tls": "0.0.1",
     "vue": "^2.5.3",
     "vuefire": "^1.4.4",
+    "vuex": "^3.0.1",
     "xml2js": "^0.4.19"
   },
   "devDependencies": {

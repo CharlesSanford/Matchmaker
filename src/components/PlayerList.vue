@@ -25,11 +25,11 @@ export default {
   },
   created: function () {
     var vm=this
-    db.collection("Users").get().then((querySnapshot) => {
-    querySnapshot.forEach((doc) => {
+    db.collection("Queue").doc('duo').collection('steamids').get().then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
         vm.players.push(doc.data().steamid)
+      })
     })
-})
   }
 }
 </script>

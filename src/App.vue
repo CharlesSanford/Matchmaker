@@ -10,6 +10,7 @@
     <button @click="squadSizeSelected = 2" class="button__duo" v-bind:class="{ 'active' : squadSizeSelected==2 }">2</button>
     <button @click="squadSizeSelected = 4"  class="button__squad" v-bind:class="{ 'active' : squadSizeSelected==4 }">4</button>
     <button @click="joinQueue()" class="button__queue">Queue Up!</button>
+    <Lobby/>
     <PlayerList/>
   </div>
 </template>
@@ -18,6 +19,7 @@
 import Header from './components/Header'
 import HelloWorld from './components/HelloWorld'
 import PlayerList from './components/PlayerList'
+import Lobby from './components/Lobby'
 import cheerio from 'cheerio'
 import request from 'request'
 import db from './assets/js/db'
@@ -28,13 +30,15 @@ export default {
   components: {
     Header,
     HelloWorld,
-    PlayerList
+    PlayerList,
+    Lobby
   },
   data () {
     return {
       steamid: '',
+      lobbyid: '',
       isValid: true,
-      squadSizeSelected: 4,
+      squadSizeSelected: 2,
       inQueue: false
     }
   },
@@ -42,9 +46,105 @@ export default {
     joinQueue() {
       this.inQueue=true
       var vm = this
-      db.collection('Queue').doc(this.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamids').add({
+      db.collection('Queue').doc(this.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamids').doc(vm.steamid).set({
         steamid: vm.steamid
       })
+      setTimeout( function() {
+        if (vm.inQueue == true) {
+          vm.squadUp()
+        }
+      }, 1000)
+      
+    },
+    squadUp() {
+      var vm = this
+        db.collection('Queue').doc(vm.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamids').get().then(function(querySnapshot) {
+          console.log('size: '+querySnapshot.size)
+          if (querySnapshot.size >= (vm.squadSizeSelected)) {
+            console.log('querysnap length is great enough')
+
+            var payload = {
+              count: vm.squadSizeSelected,
+              p1: '',
+              p2: '',
+              p3: '',
+              p4: ''
+            }
+            var pCount = 0
+
+          querySnapshot.forEach(function(doc) {
+            
+            if (pCount<vm.squadSizeSelected) {
+              pCount++
+
+              switch (pCount) {    
+                case 1:
+                  console.log(pCount)
+                  payload.p1=doc.data()
+                  break
+                case 2:
+                  console.log(pCount)
+                  payload.p2=doc.data()
+                  break
+                case 3:
+                  console.log(pCount)
+                  payload.p3=doc.data()
+                  break
+                case 4:
+                  console.log(pCount)
+                  payload.p4=doc.data()
+                  break
+                default:
+                  break
+              }   
+            } 
+            if (pCount==vm.squadSizeSelected) {
+              console.log('made it into else')
+              console.log(payload.p2=='')
+              console.log(payload)
+              pCount=0
+
+              if ((vm.squadSizeSelected==2 ? payload.p2 : payload.p4)!='') {
+
+                console.log('made it into if')
+
+                db.collection('Lobbies').add(payload)
+                console.log('lobby added')
+                db.collection('Lobbies').get().then(function(querySnapshot) {
+                  console.log(querySnapshot)
+                  querySnapshot.forEach(function(doc) {
+                    console.log(doc.id, " => ", doc.data())
+                    if(doc.data().p1.steamid==vm.steamid || doc.data().p2.steamid==vm.steamid ||  doc.data().p3.steamid==vm.steamid || doc.data().p4.steamid==vm.steamid) {
+                      vm.lobbyid=doc.id
+                    }
+                  })
+                })
+
+                // db.collection('Lobbies').where("p1", "==", vm.steamid).get().then(function(querySnapshot){
+                //   console.log(querySnapshot.size)
+                //   console.log(querySnapshot.id)
+                //   querySnapshot.forEach(function(doc) {
+                //   })
+                // })
+                // db.collection('Lobbies').where("p2", "==", vm.steamid).get().then(function(querySnapshot){
+                //   console.log(querySnapshot.size)
+                //   console.log(querySnapshot.id)
+                // })
+                // db.collection('Lobbies').where("p3", "==", vm.steamid).get().then(function(querySnapshot){
+                //   console.log(querySnapshot.size)
+                //   console.log(querySnapshot.id)
+                // })
+                // db.collection('Lobbies').where("p4", "==", vm.steamid).get().then(function(querySnapshot){
+                //   console.log(querySnapshot.size)
+                //   console.log(querySnapshot.id)
+                // })
+                vm.inQueue=false;
+              }
+            }
+          })   
+          } 
+        })
+
     },
     validateSteamid() {
       var vm = this;
@@ -56,7 +156,7 @@ export default {
               vm.isValid = true
               db.collection('Users').doc(vm.steamid).set({
                 steamid: vm.steamid
-              })
+              }, { merge: true })
               document.cookie = 'steamid='+vm.steamid+';'
             } else {
               vm.isValid = false
@@ -83,13 +183,12 @@ export default {
           }
       }
       return "";
-  }
-
+    }
   },
   created: function() {
-      this.steamid = this.getCookie("steamid");
+      this.steamid = this.getCookie("steamid")
     if (document.cookie) {
-      this.steamid = this.getCookie("steamid");
+      this.steamid = this.getCookie("steamid")
     }
   }
 
