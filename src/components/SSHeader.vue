@@ -10,7 +10,7 @@
         </div>
         <div class="header__right">
             <div class="header__id">
-                {{steamid}}
+                {{steamId}}
             </div>
         </div>
     </div>
@@ -18,8 +18,8 @@
 
 <script>
 export default {
-name: 'Header',
-props: ['steamid'],
+name: 'SSHeader',
+props: ['steamId'],
 data () {
     return {
       

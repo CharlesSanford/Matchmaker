@@ -1,12 +1,12 @@
 <template>
   <div id="app">
-    <Header v-bind:steamid="steamid"/>
+    <SSHeader v-bind:steamId="steamId"/>
     <div> Just type your Steam ID below, choose your squad size and queue up!</div>
     <div class="input-container">
-      <input class="uk-input input" v-model.lazy="steamid">
+      <input class="uk-input input" v-model.lazy="user.steamId">
       <button class="uk-button button" @click="addUser"> Set ID </button>
     </div>
-    <div v-if="!isValid">NOPE!</div>
+    <div v-if="!steamIdValid">NOPE!</div>
     <button @click="squadSizeSelected = 2" class="button__duo" v-bind:class="{ 'active' : squadSizeSelected==2 }">2</button>
     <button @click="squadSizeSelected = 4"  class="button__squad" v-bind:class="{ 'active' : squadSizeSelected==4 }">4</button>
     <button @click="joinQueue()" class="button__queue">Queue Up!</button>
@@ -16,59 +16,107 @@
 </template>
 
 <script>
-import Header from './components/Header'
+import SSHeader from './components/SSHeader'
 import HelloWorld from './components/HelloWorld'
 import PlayerList from './components/PlayerList'
 import Lobby from './components/Lobby'
 import cheerio from 'cheerio'
 import request from 'request'
-import db from './assets/js/db'
+import { mapState } from 'vuex'
 
 
 export default {
   name: 'app',
   components: {
-    Header,
+    SSHeader,
     HelloWorld,
     PlayerList,
     Lobby
   },
   data () {
     return {
-      steamid: '',
-      lobbyid: '',
-      isValid: true,
-      squadSizeSelected: 2,
-      inQueue: false
+      user: {
+        steamId: '',
+        lobbyId: '',
+      },
+      socket: io.connect('http://localhost:4000/')
+    }
+  },
+  watch: {
+    inQueue: function (val) {
+      if(val) {
+        this.socket.on('user-added-to-queue', function(data) {  
+          console.log('socket data',data);
+        })
+      }
+    },
+  },
+  computed: {
+    steamId: {
+      get() {
+        return this.$store.state.steamId   
+      },
+      set(newValue) {
+        this.$store.commit('setSteamId', newValue)
+      }
+    },
+    lobbyId: {
+      get() {
+        return this.$store.state.lobbyId  
+      },
+      set(newValue) {
+        this.$store.commit('setLobbyId', newValue)
+      }
+    },    
+    steamIdValid: {
+      get() {
+        return this.$store.state.steamIdValid 
+      },
+      set(newValue) {
+        this.$store.commit('setSteamIdValid', newValue)
+      }
+      
+    },
+    squadSizeSelected: {
+      get() {
+        return this.$store.state.squadSizeSelected
+      },
+      set(newValue) {
+        this.$store.commit('setSquadSizeSelected', newValue)
+      }
+    },
+    inQueue: {
+      get() {
+      return this.$store.state.inQueue
+      },
+      set(newValue) {
+        this.$store.commit('setInQueue', newValue)
+      }
     }
   },
   methods: {
     joinQueue() {
       this.inQueue=true
       var vm = this
-      db.collection('Queue').doc(this.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamids').doc(vm.steamid).set({
-        steamid: vm.steamid
-      })
-      setTimeout( function() {
+      // db.collection('Queue').doc(this.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamIds').doc(vm.steamId).set({
+      //   steamId: vm.steamId
+      // })    
+
         if (vm.inQueue == true) {
           vm.squadUp()
         }
-      }, 1000)
-      
+
     },
     squadUp() {
       var vm = this
-        db.collection('Queue').doc(vm.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamids').get().then(function(querySnapshot) {
+        db.collection('Queue').doc(vm.squadSizeSelected==2 ? 'duo' : 'squad').collection('steamIds').get().then(function(querySnapshot) {
           console.log('size: '+querySnapshot.size)
           if (querySnapshot.size >= (vm.squadSizeSelected)) {
             console.log('querysnap length is great enough')
 
             var payload = {
               count: vm.squadSizeSelected,
-              p1: '',
-              p2: '',
-              p3: '',
-              p4: ''
+              players: []
             }
             var pCount = 0
 
@@ -80,19 +128,19 @@ export default {
               switch (pCount) {    
                 case 1:
                   console.log(pCount)
-                  payload.p1=doc.data()
+                  payload.players.push(doc.data().steamId)
                   break
                 case 2:
                   console.log(pCount)
-                  payload.p2=doc.data()
+                  payload.players.push(doc.data().steamId)
                   break
                 case 3:
                   console.log(pCount)
-                  payload.p3=doc.data()
+                  payload.players.push(doc.data().steamId)
                   break
                 case 4:
                   console.log(pCount)
-                  payload.p4=doc.data()
+                  payload.players.push(doc.data().steamId)
                   break
                 default:
                   break
@@ -100,11 +148,10 @@ export default {
             } 
             if (pCount==vm.squadSizeSelected) {
               console.log('made it into else')
-              console.log(payload.p2=='')
               console.log(payload)
               pCount=0
 
-              if ((vm.squadSizeSelected==2 ? payload.p2 : payload.p4)!='') {
+              if ((vm.squadSizeSelected==2 ? payload.players[1] : payload.players[3])!='') {
 
                 console.log('made it into if')
 
@@ -114,30 +161,12 @@ export default {
                   console.log(querySnapshot)
                   querySnapshot.forEach(function(doc) {
                     console.log(doc.id, " => ", doc.data())
-                    if(doc.data().p1.steamid==vm.steamid || doc.data().p2.steamid==vm.steamid ||  doc.data().p3.steamid==vm.steamid || doc.data().p4.steamid==vm.steamid) {
-                      vm.lobbyid=doc.id
+                    //if(doc.data().players.includes({steamId: vm.steamId})) {
+                    if(doc.data().players[0]==vm.steamId || doc.data().players[1]==vm.steamId ||  doc.data().players[2]==vm.steamId || doc.data().players[3]==vm.steamId) {
+                      vm.lobbyId=doc.id
                     }
                   })
                 })
-
-                // db.collection('Lobbies').where("p1", "==", vm.steamid).get().then(function(querySnapshot){
-                //   console.log(querySnapshot.size)
-                //   console.log(querySnapshot.id)
-                //   querySnapshot.forEach(function(doc) {
-                //   })
-                // })
-                // db.collection('Lobbies').where("p2", "==", vm.steamid).get().then(function(querySnapshot){
-                //   console.log(querySnapshot.size)
-                //   console.log(querySnapshot.id)
-                // })
-                // db.collection('Lobbies').where("p3", "==", vm.steamid).get().then(function(querySnapshot){
-                //   console.log(querySnapshot.size)
-                //   console.log(querySnapshot.id)
-                // })
-                // db.collection('Lobbies').where("p4", "==", vm.steamid).get().then(function(querySnapshot){
-                //   console.log(querySnapshot.size)
-                //   console.log(querySnapshot.id)
-                // })
                 vm.inQueue=false;
               }
             }
@@ -146,20 +175,22 @@ export default {
         })
 
     },
-    validateSteamid() {
+    validatesteamId() {
       var vm = this;
 
-      request('https://cors-anywhere.herokuapp.com/'+'http://steamcommunity.com/id/'+this.steamid,  function (error, response) {
+      request('https://cors-anywhere.herokuapp.com/'+'http://steamcommunity.com/id/'+this.steamId,  function (error, response) {
           if (!error && response.statusCode == 200) {
             const $ = cheerio.load(response.body)
             if (!$('div .error_ctn').hasClass('error_ctn')) {
-              vm.isValid = true
-              db.collection('Users').doc(vm.steamid).set({
-                steamid: vm.steamid
-              }, { merge: true })
-              document.cookie = 'steamid='+vm.steamid+';'
+              vm.steamIdValid = true
+              vm.$store.dispatch('user/setUser', vm.user)
+              vm.$store.dispatch('user/createUser', vm.user)
+              vm.socket.emit('user-added', {
+                user: vm.user
+              })
+              document.cookie = 'steamId='+vm.steamId+';'
             } else {
-              vm.isValid = false
+              vm.steamIdValid = false
             }
           } else {
             console.log(error)
@@ -167,7 +198,7 @@ export default {
       })
     },
     addUser() {
-      this.validateSteamid()
+      this.validatesteamId()
     },
     getCookie(cname) {
       var name = cname + "=";
@@ -186,10 +217,16 @@ export default {
     }
   },
   created: function() {
-      this.steamid = this.getCookie("steamid")
+      this.steamId = this.getCookie("steamId")
     if (document.cookie) {
-      this.steamid = this.getCookie("steamid")
+      this.steamId = this.getCookie("steamId")
     }
+  },
+  mounted: function() {
+    this.socket.on('user-added', function(data) {
+      console.log('socket data',data);
+    })
+
   }
 
 }

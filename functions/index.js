@@ -23,55 +23,101 @@ exports.joinLobby = functions.firestore
   var newValue = event.data.data();
 
   // access a particular field as you would any JS property
-  var p1 = newValue.p1.steamid;
-  var p2 = newValue.p2.steamid;
-  var p3 = newValue.p3.steamid;
-  var p4 = newValue.p4.steamid;
+  var players = newValue.players;
+
   var count = newValue.count;
+  console.log(players);
 
   // perform desired operations ...
   if (count===2) {
-    //remove from queue
-    db.collection('Queue').doc('duo').collection('steamids').doc(p1).delete().then(function() {
-      console.log(p1 + ' deleted from duo queue');
-    }).catch(function(error) {
-      console.error("Error removing duo document: ", error);
-    });
-  
-    db.collection('Queue').doc('duo').collection('steamids').doc(p2).delete().then(function() {
-      console.log(p2 + ' deleted from duo queue');
-    }).catch(function(error) {
-      console.error("Error removing duo document: ", error);
+    console.log('count 2')
+
+    players.forEach(function(player) {
+      console.log(player)
+
+      //remove players from queue
+      db.collection('Queue').doc('duo').collection('steamIds').doc(player).delete().then(function() {
+        console.log(player + ' deleted from duo queue');
+      }).catch(function(error) {
+        console.error("Error removing duo document: ", error);
+      });
+
+      //give players a lobbyId
+      db.collection('Users').doc(player).set({
+        lobbyId: event.params.lobbyId
+      }, { merge: true });
+
+
+       //remove old lobbies players that are the same as new lobby players
+
+       var lobbies = [];
+       var lobbyPlayers = [];
+       db.collection('Lobbies').where('players.size', '>', 0)
+      .get()
+      .then(function(querySnapshot){
+        querySnapshot.forEach(function(doc) {
+          doc.data().players.forEach(function(lobbyPlayer) {
+            if (lobbyPlayer!=player) {
+              console.log('lobbyplayer => ',lobbyPlayer);
+              lobbyPlayers.push(lobbyPlayer);
+            }
+          });
+        });
+        console.log(lobbies);
+        console.log(lobbyPlayers);
+      })
+      .then(function(){
+        console.log(lobbies);
+        console.log(lobbyPlayers);
+        
+      })
     });
 
-    //give players a lobbyid
-    db.collection('Users').doc(p1).set({
-      lobbyid: event.params.lobbyId
-    }, { merge: true });
+    //console.log(lobbies);
+
+    //remove any empty lobbies
+    // db.collection('Lobbies').where('p1', '==', '').where('p2', '==', '').delete().then(function() {
+    //   console.log('empty lobby deleted');
+    // }).catch(function(error) {
+    //   console.error("Error deleting lobby: ", error);
+    // });
   } else {
     //remove from queue
-    db.collection('Queue').doc('squad').collection('steamids').doc(p1).delete().then(function() {
+    db.collection('Queue').doc('squad').collection('steamIds').doc(p1).delete().then(function() {
       console.log(p1 + ' deleted from squad queue');
     }).catch(function(error) {
       console.error("Error removing squad document: ", error);
     });
-  
-    db.collection('Queue').doc('squad').collection('steamids').doc(p2).delete().then(function() {
+    db.collection('Queue').doc('squad').collection('steamIds').doc(p2).delete().then(function() {
       console.log(p2 + ' deleted from squad queue');
     }).catch(function(error) {
       console.error("Error removing squad document: ", error);
     });
-    db.collection('Queue').doc('squad').collection('steamids').doc(p3).delete().then(function() {
+    db.collection('Queue').doc('squad').collection('steamIds').doc(p3).delete().then(function() {
       console.log(p3 + ' deleted from squad queue');
     }).catch(function(error) {
       console.error("Error removing squad document: ", error);
-    });
-  
-    db.collection('Queue').doc('squad').collection('steamids').doc(p4).delete().then(function() {
+    });  
+    db.collection('Queue').doc('squad').collection('steamIds').doc(p4).delete().then(function() {
       console.log(p4 + ' deleted from squad queue');
     }).catch(function(error) {
       console.error("Error removing squad document: ", error);
     });
+
+
+    //give players a lobbyid
+    db.collection('Users').doc(p1).set({
+      lobbyId: event.params.lobbyId
+    }, { merge: true });
+    db.collection('Users').doc(p2).set({
+      lobbyId: event.params.lobbyId
+    }, { merge: true });
+    db.collection('Users').doc(p3).set({
+      lobbyId: event.params.lobbyId
+    }, { merge: true });
+    db.collection('Users').doc(p4).set({
+      lobbyId: event.params.lobbyId
+    }, { merge: true });
   }
-  return 'ok';
+  //return 'ok';
 });

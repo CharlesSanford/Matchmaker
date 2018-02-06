@@ -25,9 +25,10 @@ export default {
   },
   created: function () {
     var vm=this
-    db.collection("Queue").doc('duo').collection('steamids').get().then((querySnapshot) => {
+    db.collection("Queue").doc('duo').collection('steamIds').onSnapshot((querySnapshot) => {
+      vm.players=[]
       querySnapshot.forEach((doc) => {
-        vm.players.push(doc.data().steamid)
+        vm.players.push(doc.data().steamId)
       })
     })
   }
