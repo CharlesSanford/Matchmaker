@@ -6,161 +6,201 @@ import store from '@/store/store'
 import axios from 'axios'
 axios.defaults.baseURL = process.env.API_URL
 
-// The following two interceptor blocks are strickly for
-// attaching the top-loading bar to all axios requests and
-// stoping the bar on all responses.
-// axios.interceptors.request.use(function (config) {
-//     router.app.$Progress.start()
-//     return config
-// }, function (error) {
-//     router.app.$Progress.fail()
-//     return Promise.reject(error)
-// })
-// axios.interceptors.response.use(function (response) {
-//     router.app.$Progress.finish()
-//     return response
-// }, function (error) {
-//     router.app.$Progress.fail()
-//     return Promise.reject(error)
-// })
-
-// axios.interceptors.response.use((response) => {
-//     return response
-// }, async (error) => {
-//     let originalRequest = error.config
-//     if (error.response.status === 401 && error.response.data.message === 'TOKEN_EXPIRED' && !originalRequest._retry) {
-//         originalRequest._retry = true
-//         try {
-//             const response = await store.dispatch('user/refreshUserTokens')
-//             await store.dispatch('user/setUserAndTokens', {accessToken: response.data.accessToken, refreshToken: response.data.refreshToken})
-//             originalRequest.headers['Authorization'] = 'Bearer ' + store.getters['user/accessToken']
-//             return axios(originalRequest)
-//         } catch (error) {
-//             // All Vuex modules must logout here
-//             await store.dispatch('user/userLogout')
-//             await store.dispatch('user/userLogout')
-
-//             router.replace({name: 'login'})
-//             Vue.toasted.error('To verify your session, please login.')
-//             return Promise.reject(error)
-//         }
-//     }
-//     return Promise.reject(error)
-// })
-
-const ADD_USER = 'ADD_USER'
-const REMOVE_USER = 'REMOVE_USER'
+const GET_QUEUE = 'GET_QUEUE'
+const ADD_USER_TO_QUEUE = 'ADD_USER_TO_QUEUE'
+const REMOVE_USER_FROM_QUEUE = 'REMOVE_USER_FROM_QUEUE'
+const SET_SQUAD_SIZE_SELECTED = 'SET_SQUAD_SIZE_SELECTED'
+const SET_IN_QUEUE = 'SET_IN_QUEUE'
 
 const queue = {
     namespaced: true,
     state: {
         queue: null,
+        inQueue: false,
+        squadSizeSelected: 2,
     },
     mutations: {
-        ADD_USER (state, data) {
-            state.user = data
+        GET_QUEUE(state, data) {
+            state.queue = data
         },
-        REMOVE_USER (state) {
-            state.user = null
-        }
+        ADD_USER_TO_QUEUE(state, data) {
+            state.queue = data
+        },
+        REMOVE_USER_FROM_QUEUE(state, data) {
+            state.queue = null
+        },
+        SET_SQUAD_SIZE_SELECTED(state, data) {
+            state.squadSizeSelected = data
+        },
+        SET_IN_QUEUE(state, data) {
+            state.inQueue = data
+        },
     },
     getters: {
-        queue (state) {
+        queue: state => {
             return state.queue
-        }
+        },
+        inQueue: state => {
+            return state.inQueue
+        },
+        squadSizeSelected: state => {
+            return state.squadSizeSelected
+        },
     },
     actions: {
-        async addUser ({ dispatch, commit, getters, rootGetters }) {
+        async getQueue({
+            dispatch,
+            commit,
+            getters,
+            rootdGetters
+        }) {
+            try {
+
+                const response = await axios.get('/api/v1/queue')
+                commit(GET_QUEUE, response.data)
+                console.log('queue', response.data)
+                return response.data
+            } catch (error) {
+                throw new Error(error)
+            }
+        },
+        async addUserToQueue({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            //console.log(getters.squadSizeSelected)
             try {
                 return await axios.post('/api/v1/queue', {
-                    steamId: user.steamId,
-                    lobbyId: user.lobbyId,
+                    steamId: data.steamId,
+                    game: 'pubg',
+                    size: getters.squadSizeSelected,
                 })
             } catch (error) {
                 throw new Error(error)
             }
         },
-        async removeUser ({ dispatch, commit, getters, rootGetters }) {
+        async removeUserFromQueue({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
             try {
-                return await axios.post('/api/v1/queue/' + user.id)
+                return await axios.delete('/api/v1/queue/' + data)
             } catch (error) {
                 throw new Error(error)
             }
         },
-        // async setUserAndTokens ({ dispatch, commit, getters, rootGetters }, data) {
-        //     try {
-        //         let decoded = jwtDecode(data.accessToken)
-        //         commit(SET_USER, decoded.data)
-        //         commit(STORE_ACCESS_TOKEN, data.accessToken)
-        //         commit(STORE_REFRESH_TOKEN, data.refreshToken)
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userLogin ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         const response = await axios.post('/api/v1/user/authenticate', {
-        //             username: credentials.username,
-        //             password: credentials.password
-        //         })
-        //         return await dispatch('setUserAndTokens', {accessToken: response.data.accessToken, refreshToken: response.data.refreshToken})
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async refreshUserTokens ({ dispatch, commit, getters, rootGetters }) {
-        //     try {
-        //         setAuthorizationHeader(rootGetters['user/accessToken'])
-        //         return await axios.post('/api/v1/user/refreshAccessToken', {
-        //             username: getters.user.username,
-        //             refreshToken: getters.refreshToken
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userLogout ({ dispatch, commit, getters, rootGetters }) {
-        //     try {
-        //         commit(LOGOUT_USER)
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userSignup ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         return await axios.post('/api/v1/user/signup', {
-        //             firstName: credentials.firstName,
-        //             lastName: credentials.lastName,
-        //             username: credentials.username,
-        //             email: credentials.email,
-        //             password: credentials.password
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userForgot ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         return await axios.post('/api/v1/user/forgot', {
-        //             email: credentials.email,
-        //             url: process.env.APP_URL + '/user/reset',
-        //             type: 'web'
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userReset ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         return await axios.post('/api/v1/user/resetPassword', {
-        //             password: credentials.password,
-        //             passwordResetToken: credentials.passwordResetToken,
-        //             email: credentials.email
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // }
+        async removeUserFromQueueBySteamId({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            try {
+                return await axios.delete('/api/v1/queue/steam/' + data)
+            } catch (error) {
+                throw new Error(error)
+            }
+        },
+        async setSquadSize({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            commit(SET_SQUAD_SIZE_SELECTED, data)
+        },
+        async setInQueue({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            commit(SET_IN_QUEUE, data)
+        },
+        async makeLobbies({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }) {
+            var lobbyCandidates = []
+            let vm = this
+            ;
+
+            let steamId = rootGetters['user/user'].steamId;
+
+            vm._vm.$socket.emit("user-added-to-queue", steamId)
+            dispatch("addUserToQueue", rootGetters['user/user']).then(function(){
+                dispatch("getQueue").then(function(queue) {
+                    console.log(queue)
+                    for (var i in queue) {
+                        if (queue[i].size == getters.squadSizeSelected && queue[i].game == 'pubg') {
+                            console.log('pushing lobbycandidates')
+                            lobbyCandidates.push(queue[i]);
+                        }
+                    }
+                    console.log('lobbycandidates', lobbyCandidates)
+                    if (lobbyCandidates.length % getters.squadSizeSelected == 0) {
+                        var lobbyCount = lobbyCandidates.length / getters.squadSizeSelected;
+                        for (var i = 0; i < lobbyCount; i++) {
+                            var myLobby = false
+                            var lobbyMembers = [];
+                            for (var j = 0; j < getters.squadSizeSelected; j++) {
+                                if(lobbyCandidates[j].steamId===steamId) {
+                                    myLobby = true
+                                }
+                                lobbyMembers.push(lobbyCandidates[j]);
+                            }
+
+                            dispatch("lobby/createLobby", getters.squadSizeSelected, {
+                                root: true
+                            }).then(function(lobbyData) {
+                                console.log('lobbyData',lobbyData);
+
+                                var emitObject = {
+                                    'lobbyId': lobbyData.data.lobbyId[0],
+                                    'lobbyMembers': lobbyMembers
+                                }
+                                console.log('emitObject',emitObject);
+
+                                vm._vm.$socket.emit("lobby-set-for-users", emitObject)
+                            })
+                        }
+                    } else {
+                        var lobbyCount =
+                            (lobbyCandidates.length -
+                                lobbyCandidates.length % getters.squadSizeSelected) /
+                            getters.squadSizeSelected;
+
+                        for (var i = 0; i < lobbyCount; i++) {
+                            var lobbyMembers = [];
+                            for (var j = 0; j < getters.squadSizeSelected; j++) {
+                                lobbyMembers.push(lobbyCandidates[j]);
+                            }
+
+                            dispatch("lobby/createLobby", getters.squadSizeSelected, {
+                                root: true
+                            }).then(function(lobbyData) {
+                                console.log('lobbyData',lobbyData);
+
+                                var emitObject = {
+                                    'lobbyId': lobbyData.data.lobbyId[0],
+                                    'lobbyMembers': lobbyMembers
+                                }
+                                console.log('emitObject',emitObject);
+
+                                vm._vm.$socket.emit("lobby-set-for-users", emitObject)
+                            })
+                        }
+                    }
+                })
+            })
+
+        }
     }
 }
 

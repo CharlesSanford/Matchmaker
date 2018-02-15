@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import db from '../assets/js/db';
+
 
 export default {
  name: 'Lobby',

@@ -9,37 +9,16 @@ const debug = process.env.NODE_ENV !== 'production'
 
 import user from '@/store/user'
 import queue from '@/store/queue'
+import socket from '@/store/socket'
+import lobby from '@/store/lobby'
+
 
 const store = new Vuex.Store({
-  //actions,
-  //getters,
-  state: {
-    steamId: '',
-    lobbyId: '',
-    steamIdValid: true,
-    squadSizeSelected: 2,
-    inQueue: false
-  },
-  mutations: {
-    setSteamId(state, payload) {
-      state.steamId=payload
-    },
-    setLobbyId(state, payload) {
-      state.lobbyId=payload
-    },
-    setSteamIdValid(state, payload) {
-      state.steamIdValid=payload
-    },
-    setInQueue(state, payload) {
-      state.inQueue=payload
-    },
-    setSquadSizeSelected(state, payload) {
-      state.squadSizeSelected=payload
-    } 
-  },
   modules: {
     user,
-    queue
+    queue,
+    socket,
+    lobby,
   },
   strict: debug
 })

@@ -6,55 +6,22 @@ import store from '@/store/store'
 import axios from 'axios'
 axios.defaults.baseURL = process.env.API_URL
 
-// The following two interceptor blocks are strickly for
-// attaching the top-loading bar to all axios requests and
-// stoping the bar on all responses.
-// axios.interceptors.request.use(function (config) {
-//     router.app.$Progress.start()
-//     return config
-// }, function (error) {
-//     router.app.$Progress.fail()
-//     return Promise.reject(error)
-// })
-// axios.interceptors.response.use(function (response) {
-//     router.app.$Progress.finish()
-//     return response
-// }, function (error) {
-//     router.app.$Progress.fail()
-//     return Promise.reject(error)
-// })
 
-// axios.interceptors.response.use((response) => {
-//     return response
-// }, async (error) => {
-//     let originalRequest = error.config
-//     if (error.response.status === 401 && error.response.data.message === 'TOKEN_EXPIRED' && !originalRequest._retry) {
-//         originalRequest._retry = true
-//         try {
-//             const response = await store.dispatch('user/refreshUserTokens')
-//             await store.dispatch('user/setUserAndTokens', {accessToken: response.data.accessToken, refreshToken: response.data.refreshToken})
-//             originalRequest.headers['Authorization'] = 'Bearer ' + store.getters['user/accessToken']
-//             return axios(originalRequest)
-//         } catch (error) {
-//             // All Vuex modules must logout here
-//             await store.dispatch('user/userLogout')
-//             await store.dispatch('user/userLogout')
+const GET_USER = 'SET_USER'
+const UPDATE_USER = 'UPDATE_USER'
 
-//             router.replace({name: 'login'})
-//             Vue.toasted.error('To verify your session, please login.')
-//             return Promise.reject(error)
-//         }
-//     }
-//     return Promise.reject(error)
-// })
-
+const UPDATE_LOBBYID = 'UPDATE_LOBBYID'
 const SET_USER = 'SET_USER'
 const CREATE_USER = 'CREATE_USER'
 
 const user = {
     namespaced: true,
     state: {
-        user: null,
+        user: {
+            id: null,
+            steamId: '',
+            lobbyId: '',
+        }
     },
     mutations: {
         SET_USER (state, data) {
@@ -63,35 +30,65 @@ const user = {
         CREATE_USER (state) {
             state.user = null
         },
+        UPDATE_LOBBYID (state, data) {
+            state.user.lobbyId = data
+        }
 
     },
     getters: {
         user (state) {
             return state.user
         },
-
     },
     actions: {
         async createUser ({ dispatch, commit, getters, rootGetters }, data) {
-            try { 
+            try {
                 return await axios.post('/api/v1/users', {
                     steamId: data.steamId,
-                    lobbyId: data.lobbyId ? data.lobbyId : "12345",
+                    lobbyId: data.lobbyId ? data.lobbyId : "",
                 })
-                console.log('user '+data.steamId+' created!')
+                //console.log('user '+data.steamId+' created!')
             } catch (error) {
                 throw new Error(error)
             }
         },
         async setUser ({ dispatch, commit, getters, rootGetters }, data) {
             try {
-                //console.log(data)
-                commit(SET_USER, data)
-                console.log('user '+data.steamId+' set!')
+                //commit(SET_USER, data)
+                const response = await axios.get('/api/v1/users/steam/'+data)
+                //console.log(response)
+                if (response.data.length===0) {
+                    await dispatch('createUser', {steamId: data})
+                    return await dispatch('setUser', data)
+                }
+
+                commit(SET_USER, response.data[0])
+                document.cookie = "steamId=" + getters.user.steamId + ";"
+
+
             } catch (error) {
                 throw new Error(error)
             }
         },
+        async setLobbyId ({ dispatch, commit, getters, rootGetters }, data) {
+            try {
+                commit(UPDATE_LOBBYID, data)
+                return await axios.put('/api/v1/users/'+getters.user.id, {
+                    lobbyId: data
+                })
+
+            } catch (error) {
+                throw new Error(error)
+            }
+        },
+        // async setUser ({ dispatch, commit, getters, rootGetters }, data) {
+        //     try {
+        //         commit(SET_USER, data)
+        //     } catch (error) {
+        //         throw new Error(error)
+        //     }
+        // },
+
         // async userLogin ({ dispatch, commit, getters, rootGetters }, credentials) {
         //     try {
         //         const response = await axios.post('/api/v1/user/authenticate', {
