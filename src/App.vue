@@ -1,15 +1,18 @@
 <template>
     <div id="app">
-        <SSHeader v-bind:steamId="steamId" />
-        <div> Just type your Steam ID below, choose your squad size and queue up!</div>
-        <div class="input-container">
-            <input class="uk-input input" v-model="inputText" @keyup.enter="setUser">
-            <button class="uk-button button" @click="setUser"> Set ID </button>
+        <SSHeader />
+        <div v-if="!steamId">
+            <div>Just type your Steam ID below, choose your squad size and queue up!</div>
+            <div class="input-container">
+                <input class="uk-input input" v-model="inputText" @keyup.enter="setUser">
+                <button class="uk-button button" @click="setUser"> Set ID </button>
+            </div>
+            <button @click="squadSizeSelected = 2" class="button__duo" v-bind:class="{ 'active' : squadSizeSelected===2 }">2</button>
+            <button @click="squadSizeSelected = 4" class="button__squad" v-bind:class="{ 'active' : squadSizeSelected===4 }">4</button>
         </div>
-
-        <button @click="squadSizeSelected = 2" class="button__duo" v-bind:class="{ 'active' : squadSizeSelected===2 }">2</button>
-        <button @click="squadSizeSelected = 4" class="button__squad" v-bind:class="{ 'active' : squadSizeSelected===4 }">4</button>
+        <div class="button__queue-container">
         <button @click="joinQueue()" class="button__queue">Queue Up!</button>
+        </div>
         <Lobby/>
         <PlayerList/>
     </div>
@@ -47,7 +50,6 @@
         data() {
             return {
                 inputText: "",
-                game: "pubg"
             };
         },
         watch: {
@@ -74,6 +76,17 @@
             },
             lobbyId() {
                 return this.lobby.lobbyId;
+            },
+            game() {
+                return this.queue.game;
+            },
+            playersInLobby: {
+                get: function () {
+                    return this.lobby.players;
+                },
+                set: function (newValue) {
+                    this.$store.dispatch("lobby/setLobbyPlayers", newValue);
+                }
             },
             queueObject() {
                 return this.queue.queue;
@@ -135,9 +148,12 @@
             }
         },
         created: function () {
+            var vm = this
             if (document.cookie) {
                 var savedSteamId = this.getCookie("steamId");
-                this.$store.dispatch("user/setUser", savedSteamId);
+                this.$store.dispatch("user/setUser", savedSteamId).then(function(user){
+                    vm.$store.dispatch("lobby/getLobbyPlayers", user.data[0].lobbyId)
+                })
             }
         },
         mounted: function () {
@@ -151,10 +167,12 @@
             this.$socket.on("lobby-set-for-users", function (data) {
                 console.log("lobby-set-for-users", data);
                 for (var user in data.lobbyMembers) {
+
                     if (data.lobbyMembers[user].steamId == vm.steamId) {
                         console.log("There is a lobby out there for me!")
                         vm.$store.dispatch("queue/removeUserFromQueueBySteamId", vm.steamId)
                         vm.$store.dispatch("user/setLobbyId", data.lobbyId)
+                        vm.playersInLobby = data.lobbyMembers
                     }
                 }
             });
@@ -164,17 +182,20 @@
 </script>
 
 <style lang="scss">
+@import url('https://fonts.googleapis.com/css?family=Teko');
+@import "./src/assets/scss/base";
+
     #app {
         font-family: "Avenir", Helvetica, Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-align: center;
-        color: #2c3e50;
+        color: #1F292E;
         margin: auto;
     }
 
     .button {
-        background-color: green;
+        background-color: $secondary-color;
         height: 50px;
         width: 300px;
         color: white;
@@ -185,10 +206,10 @@
             height: 50px;
             width: 50px;
             background: white;
-            border: 1px solid green;
+            border: 1px solid $tertiary-color;
 
             &.active {
-                background: green;
+                background: $tertiary-color;
             }
         }
 
@@ -196,18 +217,29 @@
             height: 50px;
             width: 50px;
             background: white;
-            border: 1px solid green;
+            border: 1px solid $tertiary-color;
 
             &.active {
-                background: green;
+                background: $tertiary-color;
             }
         }
 
         &__queue {
-            width: auto;
-            height: 50px;
-            background: blue;
+            width: 300px;
+            height: 100px;
+            font-family: 'Teko', sans-serif;
+            font-size: 50px;
+            font-weight: bold;
+            background: $secondary-color;
             color: white;
+            border: none;
+            margin: auto;
+            cursor: pointer;
+
+            &-container {
+                display: flex;
+                width: 100%;
+            }
         }
     }
 

@@ -45,7 +45,7 @@ const user = {
             try {
                 return await axios.post('/api/v1/users', {
                     steamId: data.steamId,
-                    lobbyId: data.lobbyId ? data.lobbyId : "",
+                    lobbyId: data.lobbyId ? data.lobbyId : null,
                 })
                 //console.log('user '+data.steamId+' created!')
             } catch (error) {
@@ -54,18 +54,14 @@ const user = {
         },
         async setUser ({ dispatch, commit, getters, rootGetters }, data) {
             try {
-                //commit(SET_USER, data)
                 const response = await axios.get('/api/v1/users/steam/'+data)
-                //console.log(response)
                 if (response.data.length===0) {
                     await dispatch('createUser', {steamId: data})
                     return await dispatch('setUser', data)
                 }
-
                 commit(SET_USER, response.data[0])
                 document.cookie = "steamId=" + getters.user.steamId + ";"
-
-
+                return response
             } catch (error) {
                 throw new Error(error)
             }
@@ -81,78 +77,6 @@ const user = {
                 throw new Error(error)
             }
         },
-        // async setUser ({ dispatch, commit, getters, rootGetters }, data) {
-        //     try {
-        //         commit(SET_USER, data)
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-
-        // async userLogin ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         const response = await axios.post('/api/v1/user/authenticate', {
-        //             username: credentials.username,
-        //             password: credentials.password
-        //         })
-        //         return await dispatch('setUserAndTokens', {accessToken: response.data.accessToken, refreshToken: response.data.refreshToken})
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async refreshUserTokens ({ dispatch, commit, getters, rootGetters }) {
-        //     try {
-        //         setAuthorizationHeader(rootGetters['user/accessToken'])
-        //         return await axios.post('/api/v1/user/refreshAccessToken', {
-        //             username: getters.user.username,
-        //             refreshToken: getters.refreshToken
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userLogout ({ dispatch, commit, getters, rootGetters }) {
-        //     try {
-        //         commit(LOGOUT_USER)
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userSignup ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         return await axios.post('/api/v1/user/signup', {
-        //             firstName: credentials.firstName,
-        //             lastName: credentials.lastName,
-        //             username: credentials.username,
-        //             email: credentials.email,
-        //             password: credentials.password
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userForgot ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         return await axios.post('/api/v1/user/forgot', {
-        //             email: credentials.email,
-        //             url: process.env.APP_URL + '/user/reset',
-        //             type: 'web'
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // },
-        // async userReset ({ dispatch, commit, getters, rootGetters }, credentials) {
-        //     try {
-        //         return await axios.post('/api/v1/user/resetPassword', {
-        //             password: credentials.password,
-        //             passwordResetToken: credentials.passwordResetToken,
-        //             email: credentials.email
-        //         })
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // }
     }
 }
 

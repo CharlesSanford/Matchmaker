@@ -18,6 +18,7 @@ const queue = {
         queue: null,
         inQueue: false,
         squadSizeSelected: 2,
+        game: 'pubg',
     },
     mutations: {
         GET_QUEUE(state, data) {
