@@ -5,6 +5,8 @@ import store from '@/store/store'
 //import router from '@/router'
 import axios from 'axios'
 axios.defaults.baseURL = process.env.API_URL
+import { setAuthorizationHeader } from '@/common/utilities'
+
 
 const SET_LOBBY = 'SET_LOBBY'
 const SET_LOBBY_PLAYERS = 'SET_LOBBY_PLAYERS'
@@ -44,9 +46,11 @@ const lobby = {
             rootGetters
         }, data) {
             try {
+                setAuthorizationHeader(rootGetters['user/accessToken'])
                 const response = await axios.post('/api/v1/lobby', {
                     size: data,
-                    game: 'pubg'
+                    game: rootGetters['queue/game'],
+                    console: rootGetters['queue/console']
                 })
                 commit(SET_LOBBY, response.data)
                 console.log('lobby', response.data)
@@ -70,6 +74,7 @@ const lobby = {
             rootGetters
         }, data) {
             try {
+                setAuthorizationHeader(rootGetters['user/accessToken'])
                 const response = await axios.get('/api/v1/users/lobby/'+data)
                 commit(SET_LOBBY_PLAYERS, response.data)
                 console.log('lobby', response.data)

@@ -1,8 +1,8 @@
 <template>
     <div class="lobby">
         <div v-for="player in playersInLobby" v-bind:key="player.text" class="lobby__card">
-            <div class="lobby__card-steamid">{{ player.steamId }}</div>
-            <button v-if="steamId==player.steamId" class="lobby__card-leave" @click="leaveLobby">Leave Lobby</button>
+            <div class="lobby__card-steamid">{{ player.username }}</div>
+            <button v-if="user.id==player.id" class="lobby__card-leave" @click="leaveLobby">Leave Lobby</button>
         </div>
     </div>
 </template>
@@ -48,12 +48,16 @@
             leaveLobby() {
                 var vm = this
                 vm.$store.dispatch('user/setLobbyId', null).then(function () {
-                    vm.$socket.emit('user-left-lobby', vm.steamId)
+                    vm.$socket.emit('user-left-lobby', vm.id)
                 })
             }
         },
         created: function () {
             var vm = this
+            for (var i in this.playersInLobby) {
+                //fetch userdata
+                vm.store.dispatch('lobby/fetchUserData', this.playersInLobby[i].id)
+            }
             vm.$socket.on('user-left-lobby', function (data) {
                 console.log("user-left-lobby", data);
                 vm.$store.dispatch("lobby/getLobbyPlayers", vm.lobbyId);

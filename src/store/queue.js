@@ -5,20 +5,29 @@ import store from '@/store/store'
 //import router from '@/router'
 import axios from 'axios'
 axios.defaults.baseURL = process.env.API_URL
+import { setAuthorizationHeader } from '@/common/utilities'
+
 
 const GET_QUEUE = 'GET_QUEUE'
 const ADD_USER_TO_QUEUE = 'ADD_USER_TO_QUEUE'
 const REMOVE_USER_FROM_QUEUE = 'REMOVE_USER_FROM_QUEUE'
 const SET_SQUAD_SIZE_SELECTED = 'SET_SQUAD_SIZE_SELECTED'
 const SET_IN_QUEUE = 'SET_IN_QUEUE'
+const SET_GAME = 'SET_GAME'
+const SET_CONSOLE = 'SET_CONSOLE'
 
 const queue = {
     namespaced: true,
     state: {
         queue: null,
         inQueue: false,
+        squadSizes: [2,4],
         squadSizeSelected: 2,
         game: 'pubg',
+        games: ['pubg', 'fortnite'],
+        console: 'pc',
+        consoles: ['pc', 'x1', 'ps4']
+
     },
     mutations: {
         GET_QUEUE(state, data) {
@@ -33,11 +42,24 @@ const queue = {
         SET_SQUAD_SIZE_SELECTED(state, data) {
             state.squadSizeSelected = data
         },
+        SET_GAME(state, data) {
+            state.game = data
+        },
+        SET_CONSOLE(state, data) {
+            state.console = data
+        },
         SET_IN_QUEUE(state, data) {
             state.inQueue = data
         },
+
     },
     getters: {
+        console: state => {
+            return state.console
+        },
+        game: state => {
+            return state.game
+        },
         queue: state => {
             return state.queue
         },
@@ -53,10 +75,10 @@ const queue = {
             dispatch,
             commit,
             getters,
-            rootdGetters
+            rootGetters
         }) {
             try {
-
+                setAuthorizationHeader(rootGetters['user/accessToken'])
                 const response = await axios.get('/api/v1/queue')
                 commit(GET_QUEUE, response.data)
                 console.log('queue', response.data)
@@ -71,12 +93,13 @@ const queue = {
             getters,
             rootGetters
         }, data) {
-            //console.log(getters.squadSizeSelected)
             try {
+                setAuthorizationHeader(rootGetters['user/accessToken'])
                 return await axios.post('/api/v1/queue', {
-                    steamId: data.steamId,
-                    game: 'pubg',
-                    size: getters.squadSizeSelected,
+                    userId: data.id,
+                    console: getters.console,
+                    game: getters.game,
+                    size: getters.squadSizeSelected
                 })
             } catch (error) {
                 throw new Error(error)
@@ -89,19 +112,21 @@ const queue = {
             rootGetters
         }, data) {
             try {
+                setAuthorizationHeader(rootGetters['user/accessToken'])
                 return await axios.delete('/api/v1/queue/' + data)
             } catch (error) {
                 throw new Error(error)
             }
         },
-        async removeUserFromQueueBySteamId({
+        async removeUserFromQueueById({
             dispatch,
             commit,
             getters,
             rootGetters
         }, data) {
             try {
-                return await axios.delete('/api/v1/queue/steam/' + data)
+                setAuthorizationHeader(rootGetters['user/accessToken'])
+                return await axios.delete('/api/v1/queue/' + data)
             } catch (error) {
                 throw new Error(error)
             }
@@ -113,6 +138,22 @@ const queue = {
             rootGetters
         }, data) {
             commit(SET_SQUAD_SIZE_SELECTED, data)
+        },
+        async setGame({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            commit(SET_GAME, data)
+        },
+        async setConsole({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            commit(SET_CONSOLE, data)
         },
         async setInQueue({
             dispatch,
@@ -130,16 +171,14 @@ const queue = {
         }) {
             var lobbyCandidates = []
             let vm = this
-            ;
 
-            let steamId = rootGetters['user/user'].steamId;
 
-            vm._vm.$socket.emit("user-added-to-queue", steamId)
+            vm._vm.$socket.emit("user-added-to-queue", rootGetters['user/user'])
             dispatch("addUserToQueue", rootGetters['user/user']).then(function(){
                 dispatch("getQueue").then(function(queue) {
                     console.log(queue)
                     for (var i in queue) {
-                        if (queue[i].size == getters.squadSizeSelected && queue[i].game == 'pubg') {
+                        if (queue[i].size == getters.squadSizeSelected && queue[i].game == getters.game) {
                             console.log('pushing lobbycandidates')
                             lobbyCandidates.push(queue[i]);
                         }
@@ -151,7 +190,7 @@ const queue = {
                             var myLobby = false
                             var lobbyMembers = [];
                             for (var j = 0; j < getters.squadSizeSelected; j++) {
-                                if(lobbyCandidates[j].steamId===steamId) {
+                                if(lobbyCandidates[j].id===rootGetters['user/accessToken'].id) {
                                     myLobby = true
                                 }
                                 lobbyMembers.push(lobbyCandidates[j]);
@@ -163,7 +202,7 @@ const queue = {
                                 console.log('lobbyData',lobbyData);
 
                                 var emitObject = {
-                                    'lobbyId': lobbyData.data.lobbyId[0],
+                                    'lobbyId': lobbyData.data.id[0],
                                     'lobbyMembers': lobbyMembers
                                 }
                                 console.log('emitObject',emitObject);
@@ -189,7 +228,7 @@ const queue = {
                                 console.log('lobbyData',lobbyData);
 
                                 var emitObject = {
-                                    'lobbyId': lobbyData.data.lobbyId[0],
+                                    'lobbyId': lobbyData.data.id[0],
                                     'lobbyMembers': lobbyMembers
                                 }
                                 console.log('emitObject',emitObject);
