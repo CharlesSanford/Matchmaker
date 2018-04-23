@@ -126,6 +126,7 @@ const queue = {
         }, data) {
             try {
                 setAuthorizationHeader(rootGetters['user/accessToken'])
+                console.log('deleting from queue', data)
                 return await axios.delete('/api/v1/queue/' + data)
             } catch (error) {
                 throw new Error(error)

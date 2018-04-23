@@ -126,7 +126,7 @@
                         console.log("There is a lobby out there for me!")
                         console.log(data)
                         for (var i in data.lobbyMembers) {
-                            vm.$store.dispatch("queue/removeUserFromQueueById", vm.user.id)
+                            vm.$store.dispatch("queue/removeUserFromQueueById", data.lobbyMembers[i].id)
                         }
                         var updatedUser = Object.assign({}, vm.user);
                         updatedUser.lobbyId = data.lobbyId

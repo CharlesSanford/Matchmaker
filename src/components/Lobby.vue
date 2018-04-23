@@ -1,8 +1,10 @@
 <template>
-    <div class="lobby">
-        <div v-for="player in playersInLobby" v-bind:key="player.text" class="lobby__card">
-            <div class="lobby__card-steamid">{{ player.username }}</div>
-            <button v-if="user.id==player.id" class="lobby__card-leave" @click="leaveLobby">Leave Lobby</button>
+    <div v-if="playersInLobby&&playersUserData&&user" class="lobby">
+        <div v-for="(player, key) in playersInLobby" class="lobby__card">
+            {{key}}
+            {{user.id}}
+            <div class="lobby__card-steamid" v-if="playersUserData[key]">{{ playersUserData[key].username }}</div>
+            <button v-if="playersUserData[key]&&playersUserData[key].id===user.id" class="lobby__card-leave" @click="leaveLobby">Leave Lobby</button>
         </div>
     </div>
 </template>
@@ -29,38 +31,65 @@
                 socket: state => state.socket,
                 lobby: state => state.lobby,
             }),
-            steamId() {
-                return this.user.steamId;
-            },
             lobbyId() {
                 return this.user.lobbyId;
             },
             playersInLobby: {
                 get: function () {
-                    return this.lobby.players;
+                    return this.lobby.entities.players;
                 },
                 set: function (newValue) {
                     this.$store.dispatch("lobby/setLobbyPlayers", newValue);
                 }
             },
+            playersUserData() {
+                return this.lobby.entities.users
+            },
+            // computedPlayers() {
+            //     var p = []
+            //     for (var i in this.playersInLobby) {
+            //        console.log(i)
+            //        for (var j in this.playersUserData) {
+            //             console.log(j)
+            //             if (this.playersInLobby[i].userId===this.playersUserData[j].id) {
+            //                 console.log('IF')
+            //                 var ip = Object.assign(this.playersInLobby[i], this.playersUserData[j])
+            //                 console.log('ip',ip)
+            //                 p.push(ip)
+            //             }
+            //        }
+            //     }
+            //     return p
+            // }
         },
         methods: {
             leaveLobby() {
                 var vm = this
-                vm.$store.dispatch('user/setLobbyId', null).then(function () {
-                    vm.$socket.emit('user-left-lobby', vm.id)
+                var updatedUser = Object.assign({}, vm.user);
+                updatedUser.lobbyId = null
+                //delete updatedUser.token
+                vm.$store.dispatch("user/updateUser", updatedUser).then(function () {
+                    vm.$socket.emit('user-left-lobby', vm.user.id)
                 })
             }
         },
         created: function () {
             var vm = this
-            for (var i in this.playersInLobby) {
+            //this.$store.dispatch("lobby/getLobbyPlayers", vm.lobbyId);
+            for (var i in vm.playersInLobby) {
                 //fetch userdata
-                vm.store.dispatch('lobby/fetchUserData', this.playersInLobby[i].id)
+                console.log('fetching userdata for:', vm.playersInLobby[i].userId)
+                vm.$store.dispatch('lobby/fetchUserData', vm.playersInLobby[i].userId)
             }
             vm.$socket.on('user-left-lobby', function (data) {
                 console.log("user-left-lobby", data);
-                vm.$store.dispatch("lobby/getLobbyPlayers", vm.lobbyId);
+                if (vm.lobbyId === null) {
+                    vm.$router.push({ name: 'home'})
+                } else {
+                    var updatedLobby = Object.assign({}, vm.playersInLobby);
+                    delete updatedLobby[data]
+                    vm.$store.dispatch("lobby/overwriteLobbyPlayers", updatedLobby);
+                }
             })
         }
     }

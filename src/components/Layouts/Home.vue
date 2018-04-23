@@ -18,7 +18,7 @@
         ></v-select>
 
         <v-btn @click="joinQueue()">queue up</v-btn>
-        <div>{{queue.queue.length}}</div>
+        <div v-if="queue.queue">{{queue.queue.length}}</div>
     </section>
 </template>
 
