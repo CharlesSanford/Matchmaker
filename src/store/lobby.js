@@ -8,7 +8,9 @@ axios.defaults.baseURL = process.env.API_URL
 import { setAuthorizationHeader } from '@/common/utilities'
 import { normalize, schema } from 'normalizr';
 
-const user = new schema.Entity('users');
+const user = new schema.Entity('users', undefined, {
+    idAttribute: 'id'
+})
 const player = new schema.Entity('players', undefined, {
     idAttribute: 'userId'
 })
@@ -128,7 +130,7 @@ const lobby = {
             console.log(data)
             var normalizedEntity = normalize(data, playerSchema);
             console.log(normalizedEntity)
-            commit(UPDATE_ENTITIES, { entities: normalizedEntity.entities })
+            commit(SET_LOBBY_PLAYERS, normalizedEntity.entities.players)
         },
         async overwriteLobbyPlayers({
             dispatch,
@@ -172,7 +174,27 @@ const lobby = {
             } catch (error) {
                 throw new Error(error)
             }
+        },
+
+        async fetchLobbyPlayers({
+            dispatch,
+            commit,
+            getters,
+            rootGetters
+        }, data) {
+            try {
+                setAuthorizationHeader(rootGetters['user/accessToken'])
+                const response = await axios.get('/api/v1/user?lobbyId=' + data)
+                console.log(response.data)
+                var normalizedEntity = normalize(response.data, [user]);
+                console.log(normalizedEntity)
+                commit(SET_LOBBY_PLAYERS, normalizedEntity.entities.users)
+                return response
+            } catch (error) {
+                throw new Error(error)
+            }
         }
+
     }
 }
 

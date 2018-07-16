@@ -62,14 +62,7 @@
             game() {
                 return this.queue.game;
             },
-            playersInLobby: {
-                get: function () {
-                    return this.lobby.players;
-                },
-                set: function (newValue) {
-                    this.$store.dispatch("lobby/setLobbyPlayers", newValue);
-                }
-            },
+
             queueObject() {
                 return this.queue.queue;
             },

@@ -1,10 +1,10 @@
 <template>
-    <div v-if="playersInLobby&&playersUserData&&user" class="lobby">
-        <div v-for="(player, key) in playersInLobby" class="lobby__card">
-            {{key}}
+    <div v-if="playersInLobby&&user" class="lobby">
+        <div v-for="(player, i) in playersInLobby" :key="i" class="lobby__card">
+            {{i}}
             {{user.id}}
-            <div class="lobby__card-steamid" v-if="playersUserData[key]">{{ playersUserData[key].username }}</div>
-            <button v-if="playersUserData[key]&&playersUserData[key].id===user.id" class="lobby__card-leave" @click="leaveLobby">Leave Lobby</button>
+            <div class="lobby__card-steamid" v-if="playersInLobby[i]">{{ playersInLobby[i].username }}</div>
+            <button v-if="playersInLobby[i]&&playersInLobby[i].id===user.id" class="lobby__card-leave" @click="leaveLobby">Leave Lobby</button>
         </div>
     </div>
 </template>
@@ -16,6 +16,7 @@
 
     export default {
         name: 'Lobby',
+        props:['lobbyId'],
         components: {
 
         },
@@ -31,36 +32,17 @@
                 socket: state => state.socket,
                 lobby: state => state.lobby,
             }),
-            lobbyId() {
-                return this.user.lobbyId;
-            },
             playersInLobby: {
                 get: function () {
                     return this.lobby.entities.players;
                 },
-                set: function (newValue) {
-                    this.$store.dispatch("lobby/setLobbyPlayers", newValue);
-                }
+                // set: function (newValue) {
+                //     this.$store.dispatch("lobby/setLobbyPlayers", newValue);
+                // }
             },
             playersUserData() {
                 return this.lobby.entities.users
             },
-            // computedPlayers() {
-            //     var p = []
-            //     for (var i in this.playersInLobby) {
-            //        console.log(i)
-            //        for (var j in this.playersUserData) {
-            //             console.log(j)
-            //             if (this.playersInLobby[i].userId===this.playersUserData[j].id) {
-            //                 console.log('IF')
-            //                 var ip = Object.assign(this.playersInLobby[i], this.playersUserData[j])
-            //                 console.log('ip',ip)
-            //                 p.push(ip)
-            //             }
-            //        }
-            //     }
-            //     return p
-            // }
         },
         methods: {
             leaveLobby() {
@@ -74,13 +56,14 @@
             }
         },
         created: function () {
+
+        },
+        mounted() {
             var vm = this
-            //this.$store.dispatch("lobby/getLobbyPlayers", vm.lobbyId);
-            for (var i in vm.playersInLobby) {
-                //fetch userdata
-                console.log('fetching userdata for:', vm.playersInLobby[i].userId)
-                vm.$store.dispatch('lobby/fetchUserData', vm.playersInLobby[i].userId)
-            }
+            vm.$forceUpdate();
+            console.log(vm.lobbyId)
+            vm.$store.dispatch("lobby/fetchLobbyPlayers", vm.lobbyId);
+
             vm.$socket.on('user-left-lobby', function (data) {
                 console.log("user-left-lobby", data);
                 if (vm.lobbyId === null) {
@@ -91,6 +74,9 @@
                     vm.$store.dispatch("lobby/overwriteLobbyPlayers", updatedLobby);
                 }
             })
+        },
+        updated() {
+
         }
     }
 </script>

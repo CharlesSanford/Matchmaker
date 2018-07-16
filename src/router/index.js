@@ -10,6 +10,7 @@ const Login = (resolve) => require(['@/components/User/Login.vue'], resolve)
 const Signup = (resolve) => require(['@/components/User/SignUp.vue'], resolve)
 const Forgot = (resolve) => require(['@/components/User/Forgot.vue'], resolve)
 const Reset = (resolve) => require(['@/components/User/Reset.vue'], resolve)
+const Account = (resolve) => require(['@/components/User/Account.vue'], resolve)
 
 // Lobby Routes
 const Lobby = (resolve) => require(['@/components/Lobby.vue'], resolve)
@@ -31,6 +32,7 @@ const router = new Router({
     { path: '/user/signup', component: Signup, name: 'signup', meta: {title: 'Signup'} },
     { path: '/user/forgot', component: Forgot, name: 'forgot', meta: {title: 'Forgot'} },
     { path: '/user/reset', component: Reset, name: 'reset', meta: {title: 'Reset'} },
+    { path: '/user/account', component: Account, name: 'account', meta: { title: 'Account' } },
     { path: '/lobby/:lobbyId', component: Lobby, name: 'lobby', meta: {title: 'Lobby'}, props: true },
     ],
     scrollBehavior (to, from, savedPosition) {
